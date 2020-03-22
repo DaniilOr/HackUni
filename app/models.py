@@ -1,7 +1,11 @@
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from hashlib import md5
+
 
 class User(db.Model):
+    __tablename__ = "user"
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
@@ -16,8 +20,8 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
-    def __init__(self, name, email, priority=False, price=1000, distance=1000, role='', description=''):
-        self.username = name
+    def __init__(self, username, email, priority=False, price=1000, distance=1000, role='', description=''):
+        self.username = username
         self.email = email
         self.priority = priority
         self.price = price
@@ -31,3 +35,10 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def avatar(self):
+        digest = md5(self.email.lower().encode('utf-8')).hexdigest()
+        return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
+            digest, 128)
+
