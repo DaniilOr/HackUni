@@ -140,10 +140,15 @@ def invite():
     my_json = request.get_json()
     user_id = my_json.get('id')
     description = my_json.get('description')
+    if description is None:
+        description = ''
     description = delete_numbers(delete_emails(description))
     selected_user = db.session.query(User).filter(User.id == user_id).first()
     if not selected_user is None:
-        send_mail(selected_user.email, description)
+        if description == '':
+            send_mail(selected_user.email)
+        else:
+            send_mail(selected_user.email, description)
         return make_response(jsonify({'Result': 'Invitation is sent'}), 200)
     else:
         return make_response(jsonify({'Result':'User not found'}), 404)
