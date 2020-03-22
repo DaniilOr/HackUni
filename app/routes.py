@@ -18,9 +18,10 @@ def index():
 @cross_origin()
 def login():
     my_json = request.get_json()
-    username = my_json.get('username')
     password = my_json.get('password')
-    user = db.query(User).filter(User.username == username).first()
+    email = my_json.get('email')
+    user = db.session.query(User).filter(User.email == email).first()
+
     if user is None or not user.check_password(password):
         return make_response(jsonify({'Result': 'Failed, password missmatch'}), 404)
     else:
@@ -32,9 +33,24 @@ def login():
 def get_users():
     my_json = request.get_json()
     roles = my_json.get('roles')
-    needed_people = db.query(User).filter(User.role in roles).all()
-    needed_people.sort(key=lambda x: (x.rating, x.distance, x.priority))
-    return make_response(jsonify(needed_people), 200)
+    needed_people = db.session.query(User).filter(User.role in roles).all()
+    result = []
+    for person in needed_people:
+        p = {}
+        p['username'] = person.username
+        p['id'] = person.id
+        p['email'] = person.email
+        p['password'] = person.password_hash
+        p['distance'] = person.distance
+        p['description'] = person.description
+        p['priority'] = person.priority
+        p['price'] = person.price
+        p['role'] = person.role
+        p['rating'] = person.rating
+        p['avatar'] = person.avatar
+        result.append(p)
+    result.sort(key=lambda x: (x['rating'], x['distance'], x['priority']), reverse=True)
+    return make_response(jsonify(result), 200)
 
 
 @app.route('/change_priority', methods=['GET', 'POST'])
@@ -42,18 +58,33 @@ def get_users():
 def change_priority():
     my_json = request.get_json()
     id = my_json.get('id')
-    user = db.query(User).filter(User.id == id).first()
+    user = db.session.query(User).filter(User.id == id).first()
     if user is None:
         return make_response(jsonify({'Response':'Not found'}), 404)
     user.priority = not user.priority
-    db.commit()
+    db.session.commit()
+    return make_response(jsonify({'Result':'Changed'}), 200)
 
 
 @app.route('/get_all', methods=['GET', 'POST'])
 @cross_origin()
 def get_all():
-    people = db.query(User).all()
-    return make_response(jsonify(people), 200)
+    people = db.session.query(User).all()
+    result = []
+    for person in people:
+        p = {}
+        p['username'] = person.username
+        p['id'] = person.id
+        p['email'] = person.email
+        p['password'] = person.password_hash
+        p['distance'] = person.distance
+        p['description'] = person.description
+        p['priority'] = person.priority
+        p['price'] = person.price
+        p['role'] = person.role
+        p['avatar'] = person.avatar
+        result.append(p)
+    return make_response(jsonify(result), 200)
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -73,8 +104,8 @@ def register():
         user = User(username=username, role=role, price=price, description=description,
                     distance=distance, email=email)
         user.set_password(password)
-        db.add(user)
-        db.commit()
+        db.session.add(user)
+        db.session.commit()
         return make_response(jsonify({'Result':'Registered'}), 200)
 
 
@@ -83,5 +114,38 @@ def register():
 def get_specific_role():
     my_json = request.get_json()
     role = my_json.get('role')
-    users = db.query(User).filter(User.role == role).all()
-    make_response(jsonify(users), 200)
+    users = db.session.query(User).filter(User.role == role).all()
+    result = []
+    for person in users:
+        p = {}
+        p['username'] = person.username
+        p['id'] = person.id
+        p['email'] = person.email
+        p['password'] = person.password_hash
+        p['distance'] = person.distance
+        p['description'] = person.description
+        p['priority'] = person.priority
+        p['price'] = person.price
+        p['role'] = person.role
+        p['rating'] = person.rating
+        p['avatar'] = person.avatar
+        result.append(p)
+    result.sort(key=lambda x: (x['rating'], x['distance'], x['priority']), reverse=True)
+    return make_response(jsonify(result), 200)
+
+
+@app.route('/invite', methods=['GET', 'POST'])
+@cross_origin()
+def invite():
+    my_json = request.get_json()
+    user_id = my_json.get('id')
+    description = my_json.get('description')
+    description = delete_numbers(delete_emails(description))
+    selected_user = db.session.query(User).filter(User.id == user_id).first()
+    if not selected_user is None:
+        send_mail(selected_user.email, description)
+        return make_response(jsonify({'Result': 'Invitation is sent'}), 200)
+    else:
+        return make_response(jsonify({'Result':'User not found'}), 404)
+
+
