@@ -25,7 +25,7 @@ def uname_check(uname):
 def email_check(email):
     return db.session.query(User).filter(User.email == email).first()
 
-def send_mail(email, description='День рождения сына!'):
+def send_mail(email, description='Очень важное мероприятие, о котором нет данных'):
     sender_email = "notificationssender.eHack@gmail.com"
     password = "##CENSURED##"
     port = 465  # For SSL
